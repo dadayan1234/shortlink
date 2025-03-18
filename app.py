@@ -300,4 +300,4 @@ def delete_link(
         raise HTTPException(status_code=500, detail="Error deleting link")
     
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8010, reload=True)
