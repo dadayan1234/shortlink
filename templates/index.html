@@ -7,13 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         let currentUser = null;
+        const baseUrl = "https://link.mysesa.site";
 
         async function register() {
             const username = document.getElementById("reg-username").value;
             const password = document.getElementById("reg-password").value;
 
             try {
-                const response = await fetch("http://localhost:8000/register", {
+                const response = await fetch(`${baseUrl}/register`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -38,7 +39,7 @@
             const password = document.getElementById("login-password").value;
 
             try {
-                const response = await fetch("http://localhost:8000/token", {
+                const response = await fetch(`${baseUrl}/token`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded"
@@ -70,7 +71,7 @@
             }
 
             try {
-                const response = await fetch("http://localhost:8000/shorten", {
+                const response = await fetch(`${baseUrl}/shorten`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -94,7 +95,7 @@
         }
 
         function setupLinkViewsWebSocket(shortCode) {
-            const ws = new WebSocket(`ws://localhost:8000/ws/link-views/${shortCode}`);
+            const ws = new WebSocket(`ws://link.mysesa.site/ws/link-views/${shortCode}`);
             
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
@@ -138,7 +139,7 @@
             const token = localStorage.getItem("token");
         
             try {
-                const response = await fetch(`http://localhost:8000/links/${originalShortCode}`, {
+                const response = await fetch(`${baseUrl}/links/${originalShortCode}`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -171,7 +172,7 @@
             if (!confirm("Are you sure you want to delete this link?")) return;
     
             try {
-                const response = await fetch(`http://localhost:8000/links/${shortCode}`, {
+                const response = await fetch(`${baseUrl}/links/${shortCode}`, {
                     method: "DELETE",
                     headers: {
                         "Authorization": `Bearer ${token}`
@@ -196,7 +197,7 @@
             if (!token) return;
     
             try {
-                const response = await fetch("http://localhost:8000/user/links", {
+                const response = await fetch(`${baseUrl}/user/links`, {
                     method: "GET",
                     headers: {
                         "Authorization": `Bearer ${token}`
@@ -293,7 +294,7 @@
             const token = localStorage.getItem("token");
             if (token) {
                 // Attempt to validate token and load dashboard
-                fetch("http://localhost:8000/validate_token", {
+                fetch(`${baseUrl}/validate_token`, {
                     method: "GET",
                     headers: {
                         "Authorization": `Bearer ${token}`
