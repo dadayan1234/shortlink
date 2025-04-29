@@ -95,7 +95,7 @@
         }
 
         function setupLinkViewsWebSocket(shortCode) {
-            const ws = new WebSocket(`ws://link.mysesa.site/ws/link-views/${shortCode}`);
+            const ws = new WebSocket(`wss://link.mysesa.site/ws/link-views/${shortCode}`);
             
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
