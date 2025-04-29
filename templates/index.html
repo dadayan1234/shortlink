@@ -217,29 +217,34 @@
                     linkItem.setAttribute('data-short-code', link.short_code);
                     
                     linkItem.innerHTML = `
-                        <div class="flex-grow">
-                            <p class="font-bold">${link.short_url}</p>
-                            <p class="text-gray-600">${link.original_url}</p>
+                        <div class="flex-grow break-words">
+                            <a href="${link.short_url}" target="_blank" rel="noopener noreferrer" 
+                            class="font-bold text-blue-600 hover:underline break-all">
+                                ${link.short_url}
+                            </a>
+                            <p class="text-gray-600 break-all">${link.original_url}</p>
                             <p class="text-sm text-gray-500 link-views">Visits: ${link.visits}</p>
                         </div>
-                        <div class="flex space-x-2">
+                        <div class="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0 mt-4 sm:mt-0 w-full sm:w-auto">
                             <button 
                                 onclick="copyLink('${link.short_url}')" 
-                                class="bg-blue-500 text-white px-3 py-1 rounded">
+                                class="bg-blue-500 text-white px-3 py-1 rounded w-full sm:w-auto text-sm">
                                 Copy
                             </button>
                             <button 
                                 onclick="showEditModal('${link.short_url}', '${link.original_url}', '${link.short_code}')" 
-                                class="bg-yellow-500 text-white px-3 py-1 rounded">
+                                class="bg-yellow-500 text-white px-3 py-1 rounded w-full sm:w-auto text-sm">
                                 Edit
                             </button>
                             <button 
                                 onclick="deleteLink('${link.short_code}')" 
-                                class="bg-red-500 text-white px-3 py-1 rounded">
+                                class="bg-red-500 text-white px-3 py-1 rounded w-full sm:w-auto text-sm">
                                 Delete
                             </button>
                         </div>
                     `;
+
+
                     linksList.appendChild(linkItem);
     
                     // Setup WebSocket untuk setiap link
@@ -320,7 +325,7 @@
         <h1 class="text-4xl font-bold text-center mb-8 text-blue-600">LinkLite</h1>
 
         <!-- Login Section -->
-        <div id="login-section" class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
+        <div id="login-section" class="w-full max-w-md mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-6 text-center">Login</h2>
             <input type="text" id="login-username" placeholder="Username" 
                 class="w-full px-3 py-2 border rounded mb-4">
@@ -337,7 +342,7 @@
         </div>
 
         <!-- Register Section -->
-        <div id="register-section" class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md hidden">
+        <div id="register-section" class="w-full max-w-md mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-md hidden">
             <h2 class="text-2xl font-semibold mb-6 text-center">Register</h2>
             <input type="text" id="reg-username" placeholder="Username" 
                 class="w-full px-3 py-2 border rounded mb-4">
@@ -354,27 +359,25 @@
         </div>
 
         <!-- Dashboard Section -->
-        <div id="dashboard-section" class="hidden">
-            <div class="bg-white p-8 rounded-lg shadow-md">
-                <div class="flex justify-between items-center mb-6">
+            <div id="dashboard-section" class="w-full max-w-4xl mx-auto hidden">
+                <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h2 class="text-2xl font-semibold">Welcome, <span id="welcome-user"></span></h2>
-                    <button onclick="logout()" 
-                        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
-                        Logout
-                    </button>
+                    <button onclick="logout()"
+                    class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">Logout</button>
                 </div>
-
+        
                 <div class="mb-6">
                     <h3 class="text-xl font-semibold mb-4">Shorten a New Link</h3>
-                    <div class="flex space-x-2">
-                        <input type="text" id="url" placeholder="Enter URL" 
-                            class="flex-grow px-3 py-2 border rounded">
-                        <input type="text" id="custom" placeholder="Custom Code (Optional)" 
-                            class="w-1/4 px-3 py-2 border rounded">
-                        <button onclick="shorten()" 
-                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
-                            Shorten
-                        </button>
+                    <div class="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
+                    <input type="text" id="url" placeholder="Enter URL"
+                        class="flex-grow px-3 py-2 border rounded w-full">
+                    <input type="text" id="custom" placeholder="Custom Code (Optional)"
+                        class="w-full sm:w-1/4 px-3 py-2 border rounded">
+                    <button onclick="shorten()"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+                        Shorten
+                    </button>
                     </div>
                 </div>
 
@@ -390,8 +393,9 @@
     </div>
 
     <!-- Tambahkan modal edit di dalam body -->
-    <div id="edit-link-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+    <div id="edit-link-modal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md mx-4">
             <h2 class="text-2xl font-semibold mb-4">Edit Link</h2>
             <input 
                 type="text" 
