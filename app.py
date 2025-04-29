@@ -26,7 +26,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI()
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 # Konfigurasi Jinja2 untuk folder templates
 templates = Jinja2Templates(directory="templates")
