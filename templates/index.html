@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         let currentUser = null;
-        const baseUrl = "https://link.mysesa.site";
+        const baseUrl = "https://link.penaku.site";
 
         async function register() {
             const username = document.getElementById("reg-username").value;
@@ -96,7 +96,7 @@
         }
 
         function setupLinkViewsWebSocket(shortCode) {
-            const ws = new WebSocket(`wss://link.mysesa.site/ws/link-views/${shortCode}`);
+            const ws = new WebSocket(`wss://link.m.site/ws/link-views/${shortCode}`);
             
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);

@@ -138,7 +138,7 @@ def shorten_url(link: Link, user: dict = Depends(get_current_user)):
         cursor.execute("INSERT INTO links (short_code, original_url, user_id) VALUES (?, ?, ?)", 
                        (short_code, link.original_url, user["id"]))
         conn.commit()
-        return {"short_url": f"https://link.mysesa.site/{short_code}"}
+        return {"short_url": f"https://link.penaku.site/{short_code}"}
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=400, detail="Custom code already in use")
 
@@ -148,7 +148,7 @@ def get_user_links(user: dict = Depends(get_current_user)):
         # Fetch all links created by the current user
         cursor.execute("""
             SELECT short_code, original_url, visits, created_at, 
-                   'https://link.mysesa.site/' || short_code AS short_url
+                   'https://link.penaku.site/' || short_code AS short_url
             FROM links 
             WHERE user_id = ? 
             ORDER BY created_at DESC
