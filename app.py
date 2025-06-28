@@ -1,6 +1,7 @@
 import asyncio
+import io
 from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,6 +14,7 @@ import secrets
 import uvicorn
 from datetime import datetime, timedelta
 from fastapi import WebSocket, WebSocketDisconnect
+import qrcode
 
 # Tambahkan di bagian import
 from typing import List
@@ -41,7 +43,8 @@ app.add_middleware(
     allow_origins=["https://linklite-a9vfnajzx-dians-projects-d1953d13.vercel.app",
                    "http://localhost:3000", 
                    "https://link.penaku.site",
-                   "https://http://localhost:5173"],
+                   "https://http://localhost:5173",
+                   "https://nggo.site"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,7 +81,7 @@ class User(BaseModel):
 
 class Link(BaseModel):
     original_url: str
-    custom_code: str = None
+    custom_code: str = None # type: ignore
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -102,7 +105,7 @@ def get_user(username: str):
 def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        username: str = payload.get("sub") # type: ignore
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
         user = get_user(username)
@@ -197,6 +200,28 @@ def redirect(short_code: str):
         # Log the error 
         print(f"Error redirecting link: {e}")
         raise HTTPException(status_code=500, detail="Error processing link")
+
+# --- KODE BARU UNTUK QR CODE ---
+@app.get("/qr/{short_code}", response_class=StreamingResponse)
+def generate_qr_code(short_code: str):
+    """
+    Menghasilkan gambar QR code untuk short link yang diberikan.
+    """
+    link_url = f"https://link.penaku.site/{short_code}"
+    
+    # Cek apakah link ada di database (opsional, tapi bagus untuk validasi)
+    cursor.execute("SELECT id FROM links WHERE short_code = ?", (short_code,))
+    if not cursor.fetchone():
+        raise HTTPException(status_code=404, detail="Link not found")
+
+    # Buat QR code di memori
+    img = qrcode.make(link_url)
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    buf.seek(0) # Pindahkan kursor ke awal file di memori
+
+    # Kirim gambar sebagai response
+    return StreamingResponse(buf, media_type="image/png")
     
 class ConnectionManager:
     def __init__(self):
