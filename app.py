@@ -24,6 +24,11 @@ SECRET_KEY = "shortenapp"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# Configurable redirect base URL
+REDIRECT_PREFIX = "https://nggo.site"  # FE akan render ini
+ACTUAL_REDIRECT_DOMAIN = "https://link.nggo.site"  # yang digunakan FastAPI untuk redirect
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -144,7 +149,8 @@ def shorten_url(link: Link, user: dict = Depends(get_current_user)):
         cursor.execute("INSERT INTO links (short_code, original_url, user_id) VALUES (?, ?, ?)", 
                        (short_code, link.original_url, user["id"]))
         conn.commit()
-        return {"short_url": f"https://link.penaku.site/{short_code}"}
+        return {"short_url": f"{REDIRECT_PREFIX}/{short_code}"}
+
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=400, detail="Custom code already in use")
 
@@ -154,11 +160,12 @@ def get_user_links(user: dict = Depends(get_current_user)):
         # Fetch all links created by the current user
         cursor.execute("""
             SELECT short_code, original_url, visits, created_at, 
-                   'https://link.penaku.site/' || short_code AS short_url
+                ? || '/' || short_code AS short_url
             FROM links 
             WHERE user_id = ? 
             ORDER BY created_at DESC
-        """, (user["id"],))
+        """, (REDIRECT_PREFIX, user["id"]))
+
         
         # Fetch all results
         links = cursor.fetchall()
@@ -181,30 +188,27 @@ def get_user_links(user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Unable to fetch links")
 
 @app.get("/{short_code}")
-def redirect(short_code: str):
-    try:
-        # Pertama, increment visit count
-        cursor.execute("UPDATE links SET visits = visits + 1 WHERE short_code = ?", (short_code,))
-        conn.commit()
+def redirect_from_subdomain(short_code: str, request: Request):
+    # Hanya proses redirect jika domain-nya link.nggo.site
+    if request.url.hostname not in ("link.nggo.site", "localhost"):
+        raise HTTPException(status_code=404, detail="Invalid redirect access")
 
-        # Kedua, ambil URL asli
-        cursor.execute("SELECT original_url FROM links WHERE short_code = ?", (short_code,))
-        result = cursor.fetchone()
-        
-        if result:
-            # Redirect langsung ke URL asli
-            return RedirectResponse(url=result[0], status_code=302)
-        
-        raise HTTPException(status_code=404, detail="Short link not found")
-    except Exception as e:
-        # Log the error 
-        print(f"Error redirecting link: {e}")
-        raise HTTPException(status_code=500, detail="Error processing link")
+    # Update visit count
+    cursor.execute("UPDATE links SET visits = visits + 1 WHERE short_code = ?", (short_code,))
+    conn.commit()
+
+    cursor.execute("SELECT original_url FROM links WHERE short_code = ?", (short_code,))
+    result = cursor.fetchone()
+    if result:
+        return RedirectResponse(url=result[0], status_code=302)
+
+    raise HTTPException(status_code=404, detail="Short link not found")
+
 
 # --- KODE BARU UNTUK QR CODE ---
 @app.get("/qr/{short_code}")
 def generate_qr_code(short_code: str):
-    link_url = f"https://link.penaku.site/{short_code}"
+    link_url = f"{ACTUAL_REDIRECT_DOMAIN}/{short_code}"
     cursor.execute("SELECT id FROM links WHERE short_code = ?", (short_code,))
     if not cursor.fetchone():
         raise HTTPException(status_code=404, detail="Link not found")
@@ -286,7 +290,8 @@ def update_link(
         conn.commit()
         
         # Check if update was successful
-        if cursor.rowcount == 0:
+        cursor.execute("SELECT id FROM links WHERE short_code = ? AND user_id = ?", (short_code, user["id"]))
+        if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Link not found or unauthorized")
         
         return {"message": "Link updated successfully"}
