@@ -211,7 +211,7 @@ def generate_qr_code(short_code: str):
     link_url = f"{ACTUAL_REDIRECT_DOMAIN}/{short_code}"
     cursor.execute("SELECT id FROM links WHERE short_code = ?", (short_code,))
     if not cursor.fetchone():
-        raise HTTPException(status_code=404, detail="Link not found")
+        raise HTTPException(status_code=404, detail="Link not found!")
     
     img = qrcode.make(link_url)
     buf = io.BytesIO()
