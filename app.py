@@ -38,7 +38,10 @@ def read_root(request: Request):
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://linklite-a9vfnajzx-dians-projects-d1953d13.vercel.app",
+                   "http://localhost:3000", 
+                   "https://link.penaku.site",
+                   "https://http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
