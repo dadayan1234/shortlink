@@ -202,25 +202,18 @@ def redirect(short_code: str):
         raise HTTPException(status_code=500, detail="Error processing link")
 
 # --- KODE BARU UNTUK QR CODE ---
-@app.get("/qr/{short_code}", response_class=StreamingResponse)
+@app.get("/qr/{short_code}")
 def generate_qr_code(short_code: str):
-    """
-    Menghasilkan gambar QR code untuk short link yang diberikan.
-    """
     link_url = f"https://link.penaku.site/{short_code}"
-    
-    # Cek apakah link ada di database (opsional, tapi bagus untuk validasi)
     cursor.execute("SELECT id FROM links WHERE short_code = ?", (short_code,))
     if not cursor.fetchone():
         raise HTTPException(status_code=404, detail="Link not found")
-
-    # Buat QR code di memori
+    
     img = qrcode.make(link_url)
     buf = io.BytesIO()
     img.save(buf, "PNG")
-    buf.seek(0) # Pindahkan kursor ke awal file di memori
-
-    # Kirim gambar sebagai response
+    buf.seek(0)
+    
     return StreamingResponse(buf, media_type="image/png")
     
 class ConnectionManager:
