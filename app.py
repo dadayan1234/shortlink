@@ -152,7 +152,7 @@ def shorten_url(link: Link, user: dict = Depends(get_current_user)):
         return {"short_url": f"{REDIRECT_PREFIX}/{short_code}"}
 
     except sqlite3.IntegrityError:
-        raise HTTPException(status_code=400, detail="Custom code already in use")
+        raise HTTPException(status_code=400, detail="Custom code already in use!")
 
 @app.get("/user/links")
 def get_user_links(user: dict = Depends(get_current_user)):
