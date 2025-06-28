@@ -43,7 +43,7 @@ app.add_middleware(
     allow_origins=["https://linklite-a9vfnajzx-dians-projects-d1953d13.vercel.app",
                    "http://localhost:3000", 
                    "https://link.penaku.site",
-                   "https://localhost:5173",
+                   "http://localhost:5173",
                    "https://nggo.site"],
     allow_credentials=True,
     allow_methods=["*"],
