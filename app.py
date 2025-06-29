@@ -264,43 +264,48 @@ def update_link(
     user: dict = Depends(get_current_user)
 ):
     try:
-        # Check if a custom code is provided
+        # Cek apakah custom code diubah
         if link.custom_code and link.custom_code != short_code:
-            # Check if the new custom code is already in use
             cursor.execute("SELECT id FROM links WHERE short_code = ?", (link.custom_code,))
             if cursor.fetchone():
                 raise HTTPException(status_code=400, detail="Custom code already in use")
         
-        # Update with optional custom code
+        # Lakukan update
         if link.custom_code and link.custom_code != short_code:
-            # Update both URL and short code
             cursor.execute("""
                 UPDATE links 
                 SET original_url = ?, short_code = ?
                 WHERE short_code = ? AND user_id = ?
             """, (link.original_url, link.custom_code, short_code, user["id"]))
+            final_code = link.custom_code
         else:
-            # Only update URL
             cursor.execute("""
                 UPDATE links 
                 SET original_url = ?
                 WHERE short_code = ? AND user_id = ?
             """, (link.original_url, short_code, user["id"]))
-        
+            final_code = short_code
+
         conn.commit()
-        
-        # Check if update was successful
-        cursor.execute("SELECT id FROM links WHERE short_code = ? AND user_id = ?", (short_code, user["id"]))
+
+        # Cek apakah update berhasil
+        cursor.execute("SELECT id FROM links WHERE short_code = ? AND user_id = ?", (final_code, user["id"]))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Link not found or unauthorized")
         
-        return {"message": "Link updated successfully"}
-    
+        return {
+            "message": "Link updated successfully",
+            "short_code": final_code,
+            "short_url": f"{REDIRECT_PREFIX}/{final_code}",
+            "original_url": link.original_url
+        }
+
     except sqlite3.IntegrityError as e:
         raise HTTPException(status_code=400, detail="Custom code already in use") from e
     except Exception as e:
         print(f"Error updating link: {e}")
         raise HTTPException(status_code=500, detail="Error updating link") from e
+
 
 @app.delete("/links/{short_code}")
 def delete_link(
