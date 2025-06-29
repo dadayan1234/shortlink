@@ -59,7 +59,7 @@ app.add_middleware(
 conn = sqlite3.connect("shortlinks.db", check_same_thread=False)
 cursor = conn.cursor()
 
-# Enhanced database schema
+# --- SKEMA DATABASE BARU ---
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,6 +78,14 @@ CREATE TABLE IF NOT EXISTS links (
     FOREIGN KEY(user_id) REFERENCES users(id)
 )
 """)
+# Tabel baru untuk melacak penggunaan guest
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS guest_usage (
+    ip_address TEXT PRIMARY KEY,
+    count INTEGER DEFAULT 1,
+    last_shorten_date DATETIME
+)
+""")
 conn.commit()
 
 class User(BaseModel):
@@ -87,6 +95,9 @@ class User(BaseModel):
 class Link(BaseModel):
     original_url: str
     custom_code: str = None # type: ignore
+    
+class GuestLink(BaseModel):
+    original_url: str
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -119,6 +130,56 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         return user
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+# --- GUEST SHORTENING ROUTE DENGAN RATE LIMITING ---
+@app.post("/guest/shorten")
+def guest_shorten_url(link: GuestLink, request: Request):
+    # Dapatkan IP address client
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Cek penggunaan guest
+    cursor.execute("SELECT count, last_shorten_date FROM guest_usage WHERE ip_address = ?", (client_ip,))
+    usage = cursor.fetchone()
+
+    now = datetime.utcnow()
+    
+    if usage:
+        count, last_date_str = usage
+        last_date = datetime.fromisoformat(last_date_str)
+        
+        # Reset count jika sudah lebih dari 7 hari
+        if (now - last_date) > timedelta(days=7):
+            cursor.execute("UPDATE guest_usage SET count = 1, last_shorten_date = ? WHERE ip_address = ?", (now.isoformat(), client_ip))
+        # Jika masih dalam 7 hari dan sudah mencapai batas
+        elif count >= 3:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="You have reached the limit for guest link shortening. Please create an account to continue."
+            )
+        else:
+            # Increment count
+            cursor.execute("UPDATE guest_usage SET count = count + 1, last_shorten_date = ? WHERE ip_address = ?", (now.isoformat(), client_ip))
+    else:
+        # Catat IP baru
+        cursor.execute("INSERT INTO guest_usage (ip_address, last_shorten_date) VALUES (?, ?)", (client_ip, now.isoformat()))
+    
+    conn.commit()
+
+    # Logika pembuatan link (sama seperti sebelumnya)
+    short_code = secrets.token_urlsafe(6)
+    cursor.execute("SELECT id FROM links WHERE short_code = ?", (short_code,))
+    while cursor.fetchone():
+        short_code = secrets.token_urlsafe(6)
+        cursor.execute("SELECT id FROM links WHERE short_code = ?", (short_code,))
+
+    try:
+        cursor.execute("INSERT INTO links (short_code, original_url, user_id) VALUES (?, ?, ?)",
+                       (short_code, link.original_url, None))
+        conn.commit()
+        return {"short_url": f"{REDIRECT_PREFIX}/{short_code}"}
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=500, detail="Could not generate a unique link. Please try again.")
+
 
 @app.post("/register")
 def register(user: User):
