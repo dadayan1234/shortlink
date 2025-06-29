@@ -98,6 +98,8 @@ class Link(BaseModel):
     
 class GuestLink(BaseModel):
     original_url: str
+    custom_code: str = None  # optional
+
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -134,10 +136,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 # --- GUEST SHORTENING ROUTE DENGAN RATE LIMITING ---
 @app.post("/guest/shorten")
 def guest_shorten_url(link: GuestLink, request: Request):
-    # Dapatkan IP address client
     client_ip = request.client.host if request.client else "unknown"
 
-    # Cek penggunaan guest
     cursor.execute("SELECT count, last_shorten_date FROM guest_usage WHERE ip_address = ?", (client_ip,))
     usage = cursor.fetchone()
 
@@ -146,39 +146,33 @@ def guest_shorten_url(link: GuestLink, request: Request):
     if usage:
         count, last_date_str = usage
         last_date = datetime.fromisoformat(last_date_str)
-        
-        # Reset count jika sudah lebih dari 7 hari
         if (now - last_date) > timedelta(days=7):
             cursor.execute("UPDATE guest_usage SET count = 1, last_shorten_date = ? WHERE ip_address = ?", (now.isoformat(), client_ip))
-        # Jika masih dalam 7 hari dan sudah mencapai batas
         elif count >= 3:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="You have reached the limit for guest link shortening. Please create an account to continue."
+                detail="You have reached the guest limit. Please create an account."
             )
         else:
-            # Increment count
             cursor.execute("UPDATE guest_usage SET count = count + 1, last_shorten_date = ? WHERE ip_address = ?", (now.isoformat(), client_ip))
     else:
-        # Catat IP baru
         cursor.execute("INSERT INTO guest_usage (ip_address, last_shorten_date) VALUES (?, ?)", (client_ip, now.isoformat()))
     
     conn.commit()
 
-    # Logika pembuatan link (sama seperti sebelumnya)
-    short_code = secrets.token_urlsafe(6)
+    short_code = link.custom_code if link.custom_code else secrets.token_urlsafe(6)
+
     cursor.execute("SELECT id FROM links WHERE short_code = ?", (short_code,))
-    while cursor.fetchone():
-        short_code = secrets.token_urlsafe(6)
-        cursor.execute("SELECT id FROM links WHERE short_code = ?", (short_code,))
+    if cursor.fetchone():
+        raise HTTPException(status_code=400, detail="Custom code already in use")
 
     try:
-        cursor.execute("INSERT INTO links (short_code, original_url, user_id) VALUES (?, ?, ?)",
-                       (short_code, link.original_url, None))
+        cursor.execute("INSERT INTO links (short_code, original_url, user_id) VALUES (?, ?, NULL)",
+                       (short_code, link.original_url))
         conn.commit()
         return {"short_url": f"{REDIRECT_PREFIX}/{short_code}"}
     except sqlite3.IntegrityError:
-        raise HTTPException(status_code=500, detail="Could not generate a unique link. Please try again.")
+        raise HTTPException(status_code=500, detail="Could not generate link. Try again.")
 
 
 @app.post("/register")
