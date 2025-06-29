@@ -296,11 +296,11 @@ def update_link(
         
         return {"message": "Link updated successfully"}
     
-    except sqlite3.IntegrityError:
-        raise HTTPException(status_code=400, detail="Custom code already in use")
+    except sqlite3.IntegrityError as e:
+        raise HTTPException(status_code=400, detail="Custom code already in use") from e
     except Exception as e:
         print(f"Error updating link: {e}")
-        raise HTTPException(status_code=500, detail="Error updating link")
+        raise HTTPException(status_code=500, detail="Error updating link") from e
 
 @app.delete("/links/{short_code}")
 def delete_link(
