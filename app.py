@@ -329,7 +329,7 @@ def delete_link(
     
     except Exception as e:
         print(f"Error deleting link: {e}")
-        raise HTTPException(status_code=500, detail="Error deleting faking fak link")
+        raise HTTPException(status_code=500, detail="Error deleting link")
     
 if __name__ == "__main__":
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
